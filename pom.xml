@@ -133,7 +133,7 @@
             <artifactId>avro</artifactId>
             <version>1.7.6</version>
         </dependency>
-        
+
 
         <dependency>
             <groupId>org.scalactic</groupId>
@@ -291,6 +291,29 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+
+        <profile>
+            <id>spark-2.3.x</id>
+            <properties>
+                <spark.streaming.kafka.artifactId>spark-streaming-kafka-0-8_${scala.binary.version}
+                </spark.streaming.kafka.artifactId>
+                <spark.sql.kafka.artifactId>spark-sql-kafka-0-10_${scala.binary.version}</spark.sql.kafka.artifactId>
+                <spark.version>2.3.2</spark.version>
+                <spark.bigversion>2.3</spark.bigversion>
+                <bigdl.spark.version.minor>2.3.1</bigdl.spark.version.minor>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark-2.4.x</id>
+            <properties>
+                <spark.streaming.kafka.artifactId>spark-streaming-kafka-0-8_${scala.binary.version}
+                </spark.streaming.kafka.artifactId>
+                <spark.sql.kafka.artifactId>spark-sql-kafka-0-10_${scala.binary.version}</spark.sql.kafka.artifactId>
+                <spark.version>2.4.3</spark.version>
+                <spark.bigversion>2.4</spark.bigversion>
+                <bigdl.spark.version.minor>2.4.0</bigdl.spark.version.minor>
+            </properties>
         </profile>
 
         <profile>

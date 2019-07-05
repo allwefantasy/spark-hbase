@@ -217,6 +217,15 @@ case class HBaseRelation(
     if (parameters.containsKey("rootdir")) {
       hc.set("hbase.rootdir", parameters.get("rootdir").get)
     }
+    /*
+    hbase.client.retries.number = 3
+    hbase.client.pause = 1000
+    zookeeper.recovery.retry = 1 (i.e. no retry)
+    */
+
+    if (parameters.containsKey("zk.retry")) {
+      hc.set("zookeeper.recovery.retry", parameters.get("zk.retry").get)
+    }
 
     hc.set(TableInputFormat.INPUT_TABLE, parameters("inputTableName"))
     new SerializableConfiguration(hc)
