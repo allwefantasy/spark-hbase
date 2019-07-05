@@ -230,7 +230,13 @@ case class HBaseRelation(
     if (parameters.containsKey("hbase.retry")) {
       hc.set("hbase.client.retries.number", parameters.get("hbase.retry").get)
     }
-    
+
+    parameters.filter { f =>
+      f._1.startsWith("hbase.") || f._1.startsWith("zookeeper.") || f._1.startsWith("phoenix.")
+    }.foreach { f =>
+      hc.set(f._1, f._2)
+    }
+
     hc.set(TableInputFormat.INPUT_TABLE, parameters("inputTableName"))
     new SerializableConfiguration(hc)
   }
