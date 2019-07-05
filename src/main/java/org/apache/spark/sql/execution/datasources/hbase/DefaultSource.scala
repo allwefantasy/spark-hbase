@@ -227,6 +227,10 @@ case class HBaseRelation(
       hc.set("zookeeper.recovery.retry", parameters.get("zk.retry").get)
     }
 
+    if (parameters.containsKey("hbase.retry")) {
+      hc.set("hbase.client.retries.number", parameters.get("hbase.retry").get)
+    }
+    
     hc.set(TableInputFormat.INPUT_TABLE, parameters("inputTableName"))
     new SerializableConfiguration(hc)
   }
