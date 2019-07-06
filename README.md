@@ -60,6 +60,9 @@ options `field.type.ck`="IntegerType"
 as testhbase;
 ```
 
+You should configure parameters like `zookeeper.znode.parent`,`hbase.rootdir` according by 
+your HBase configuration.  
+
 Parameters：
 
 | Property Name  |  Meaning |

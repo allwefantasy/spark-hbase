@@ -84,6 +84,21 @@ case class InsertHBaseRelation(
       hc.set("hbase.rootdir", parameters.get("rootdir").get)
     }
 
+    /**
+      * when people confgiure the wrong zk address, by default the HBase client will
+      * try infinitely. We should control this group parameters to limit the try times.
+      */
+    hc.set("hbase.client.pause", parameters.getOrElse("hbase.client.pause", "1000"))
+    hc.set("zookeeper.recovery.retry", parameters.getOrElse("zookeeper.recovery.retry", "60"))
+    hc.set("hbase.client.retries.number", parameters.getOrElse("hbase.client.retries.number", "60"))
+
+
+    parameters.filter { f =>
+      f._1.startsWith("hbase.") || f._1.startsWith("zookeeper.") || f._1.startsWith("phoenix.")
+    }.foreach { f =>
+      hc.set(f._1, f._2)
+    }
+
     new SerializableConfiguration(hc)
   }
 
@@ -217,19 +232,15 @@ case class HBaseRelation(
     if (parameters.containsKey("rootdir")) {
       hc.set("hbase.rootdir", parameters.get("rootdir").get)
     }
-    /*
-    hbase.client.retries.number = 3
-    hbase.client.pause = 1000
-    zookeeper.recovery.retry = 1 (i.e. no retry)
-    */
 
-    if (parameters.containsKey("zk.retry")) {
-      hc.set("zookeeper.recovery.retry", parameters.get("zk.retry").get)
-    }
+    /**
+      * when people confgiure the wrong zk address, by default the HBase client will
+      * try infinitely. We should control this group parameters to limit the try times.
+      */
+    hc.set("hbase.client.pause", parameters.getOrElse("hbase.client.pause", "1000"))
+    hc.set("zookeeper.recovery.retry", parameters.getOrElse("zookeeper.recovery.retry", "60"))
+    hc.set("hbase.client.retries.number", parameters.getOrElse("hbase.client.retries.number", "60"))
 
-    if (parameters.containsKey("hbase.retry")) {
-      hc.set("hbase.client.retries.number", parameters.get("hbase.retry").get)
-    }
 
     parameters.filter { f =>
       f._1.startsWith("hbase.") || f._1.startsWith("zookeeper.") || f._1.startsWith("phoenix.")

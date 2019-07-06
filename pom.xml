@@ -6,7 +6,12 @@
 
     <groupId>tech.mlsql</groupId>
     <artifactId>spark-hbase_2.11</artifactId>
+    <packaging>pom</packaging>
     <version>0.1.0</version>
+    <modules>
+        <module>spark-hbase_2.4.3_2.11</module>
+        <module>spark-hbase_2.3.2_2.11</module>
+    </modules>
     <name>Spark HBase</name>
     <url>https://github.com/allwefantasy/spark-hbase.git</url>
     <description>
@@ -55,6 +60,7 @@
         <serviceframework.version>2.0.0</serviceframework.version>
         <scope>provided</scope>
         <hadoop-client-version>2.6.5</hadoop-client-version>
+        <hbase.version>1.2.0</hbase.version>
     </properties>
 
     <dependencies>
@@ -72,7 +78,7 @@
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-server</artifactId>
-            <version>1.2.0</version>
+            <version>${hbase.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>asm</groupId>
@@ -99,7 +105,7 @@
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-common</artifactId>
-            <version>1.2.0</version>
+            <version>${hbase.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>asm</groupId>
@@ -293,54 +299,6 @@
             </build>
         </profile>
 
-        <profile>
-            <id>spark-2.3.x</id>
-            <properties>
-                <spark.streaming.kafka.artifactId>spark-streaming-kafka-0-8_${scala.binary.version}
-                </spark.streaming.kafka.artifactId>
-                <spark.sql.kafka.artifactId>spark-sql-kafka-0-10_${scala.binary.version}</spark.sql.kafka.artifactId>
-                <spark.version>2.3.2</spark.version>
-                <spark.bigversion>2.3</spark.bigversion>
-                <bigdl.spark.version.minor>2.3.1</bigdl.spark.version.minor>
-            </properties>
-        </profile>
-        <profile>
-            <id>spark-2.4.x</id>
-            <properties>
-                <spark.streaming.kafka.artifactId>spark-streaming-kafka-0-8_${scala.binary.version}
-                </spark.streaming.kafka.artifactId>
-                <spark.sql.kafka.artifactId>spark-sql-kafka-0-10_${scala.binary.version}</spark.sql.kafka.artifactId>
-                <spark.version>2.4.3</spark.version>
-                <spark.bigversion>2.4</spark.bigversion>
-                <bigdl.spark.version.minor>2.4.0</bigdl.spark.version.minor>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>build-distr</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <configuration>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                                <phase>package</phase> <!-- bind to the packaging phase -->
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 
     <build>
