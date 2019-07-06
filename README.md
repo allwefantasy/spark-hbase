@@ -24,7 +24,9 @@ version: 0.1.0
 ## Build Shade Jar
 
 ```sql
-mvn -Pshade -Pspark-2.4.x clean package
+mvn clean package -Pshade -pl spark-hbase_2.4.3_2.11 -am
+mvn clean package -Pshade -pl spark-hbase_2.3.2_2.11 -am
+
 ```
 
 ## Usage
