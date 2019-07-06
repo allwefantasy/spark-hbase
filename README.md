@@ -14,9 +14,12 @@ You can link against this library in your program at the following coordinates:
 
 ```sql
 groupId: tech.mlsql
-artifactId: spark-hbase_2.11
+artifactId: spark-hbase_2.4.3_2.11
 version: 0.1.0
 ```
+
+* 2.4.3 -> Spark version. 2.4.3/2.3.2 available
+* 2.11 -> Scala version.  2.11 available 
 
 ## Build Shade Jar
 
