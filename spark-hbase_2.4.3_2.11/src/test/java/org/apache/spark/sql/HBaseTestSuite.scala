@@ -23,14 +23,15 @@ package org.apache.spark.sql
 import java.io.File
 
 import com.google.common.io.Files
-import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.{HBaseTestingUtility, TableName}
+import org.apache.spark.internal.Logging
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuite}
 
 import scala.collection.JavaConverters._
 
-class HBaseTestSuite extends FunSuite with BeforeAndAfterEach with BeforeAndAfterAll  with Logging {
+class HBaseTestSuite extends FunSuite with BeforeAndAfterEach with BeforeAndAfterAll with Logging {
   private[spark] var htu = HBaseTestingUtility.createLocalHTU()
   private[spark] var tableName: Array[Byte] = Bytes.toBytes("t1")
   private[spark] var columnFamily: Array[Byte] = Bytes.toBytes("cf0")
@@ -52,12 +53,11 @@ class HBaseTestSuite extends FunSuite with BeforeAndAfterEach with BeforeAndAfte
 
       //htu.createTable(TableName.valueOf(tableName), columnFamily, 2, Bytes.toBytes("abc"), Bytes.toBytes("xyz"), 2)
     } catch {
-      case _ : Throwable =>
+      case _: Throwable =>
         logInfo(" - no table " + Bytes.toString(tableName) + " found")
     }
     setupTable()
   }
-
 
 
   override def afterAll() {
@@ -71,7 +71,7 @@ class HBaseTestSuite extends FunSuite with BeforeAndAfterEach with BeforeAndAfte
       logInfo(" - minicluster shut down")
       htu.cleanupTestDir
     } catch {
-      case _ : Throwable => logError("teardown error")
+      case _: Throwable => logError("teardown error")
     }
   }
 
