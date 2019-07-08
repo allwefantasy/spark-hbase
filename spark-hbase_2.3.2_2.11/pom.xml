@@ -27,5 +27,12 @@
         <scope>provided</scope>
         <hadoop-client-version>2.6.5</hadoop-client-version>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>tech.mlsql</groupId>
+            <artifactId>hbase_${hbase.module}</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

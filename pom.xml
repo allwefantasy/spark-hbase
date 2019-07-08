@@ -305,34 +305,24 @@
             <id>hbase-1.2.x</id>
             <properties>
                 <hbase.version>1.2.0</hbase.version>
+                <hbase.module>1.2.x</hbase.module>
             </properties>
             <modules>
                 <module>hbase_1.2.x</module>
             </modules>
-            <dependencies>
-                <dependency>
-                    <groupId>tech.mlsql</groupId>
-                    <artifactId>hbase_1.2.x</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
+
         </profile>
 
         <profile>
             <id>hbase-2.0.x</id>
             <properties>
                 <hbase.version>2.0.4</hbase.version>
+                <hbase.module>2.0.x</hbase.module>
             </properties>
             <modules>
                 <module>hbase_2.0.x</module>
             </modules>
-            <dependencies>
-                <dependency>
-                    <groupId>tech.mlsql</groupId>
-                    <artifactId>hbase_2.0.x</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
+
         </profile>
 
         <profile>

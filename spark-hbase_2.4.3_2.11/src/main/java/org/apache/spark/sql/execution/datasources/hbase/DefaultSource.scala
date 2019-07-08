@@ -193,7 +193,7 @@ case class HBaseRelation(
     val hBaseRDD = sqlContext.sparkContext.newAPIHadoopRDD(hbaseConf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
       .map { line =>
         val rowKey = Bytes.toString(line._2.getRow)
-        import net.liftweb.{json => SJSon}
+        import _root_.net.liftweb.{json => SJSon}
         implicit val formats = SJSon.Serialization.formats(SJSon.NoTypeHints)
 
         val content = line._2.rawCells().flatMap { cell =>
