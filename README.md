@@ -29,13 +29,13 @@ version: 0.1.0
 mvn clean package -Pshade -Phbase-1.2.x -Pspark-2.4.3 -pl spark-hbase_2.4.3_2.11 -am
 
 -- hbase 1.2.0, spark 2.3.2
-mvn clean package -Pshade -Phbase-1.2.x -Pspark-2.4.3 -pl spark-hbase_2.4.3_2.11 -am
+mvn clean package -Pshade -Phbase-1.2.x -Pspark-2.3.2 -pl spark-hbase_2.3.2_2.11 -am
 
 -- hbase 2.0.x, spark 2.4.3
 mvn clean package -Pshade -Phbase-2.0.x -Pspark-2.3.2 -pl spark-hbase_2.3.2_2.11 -am
 
 -- hbase 2.0.x, spark 2.3.2
-mvn clean package -Pshade -Phbase-2.0.x -Pspark-2.3.2 -pl spark-hbase_2.3.2_2.11 -am
+mvn clean package -Pshade -Phbase-2.0.x -Pspark-2.4.3 -pl spark-hbase_2.4.3_2.11 -am
 
 ```
 
@@ -46,13 +46,13 @@ mvn clean package -Pshade -Phbase-2.0.x -Pspark-2.3.2 -pl spark-hbase_2.3.2_2.11
 mvn clean test  -Phbase-1.2.x -Pspark-2.4.3 -Ptest-spark-2.4.3 -pl spark-hbase-tests -am
 
 -- hbase 1.2.0, spark 2.3.2
-mvn clean test  -Phbase-1.2.x -Pspark-2.4.3 -Ptest-spark-2.4.3 -pl spark-hbase-tests -am
+mvn clean test  -Phbase-1.2.x -Pspark-2.3.2 -Ptest-spark-2.3.2 -pl spark-hbase-tests -am
 
 -- hbase 2.0.x, spark 2.4.3
 mvn clean test  -Phbase-2.0.x -Pspark-2.3.2 -Ptest-spark-2.3.2 -pl spark-hbase-tests -am
 
 -- hbase 2.0.x, spark 2.3.2
-mvn clean test  -Phbase-2.0.x -Pspark-2.3.2 -Ptest-spark-2.3.2 -pl spark-hbase-tests -am
+mvn clean test  -Phbase-2.0.x -Pspark-2.4.3 -Ptest-spark-2.4.3 -pl spark-hbase-tests -am
 ```
 
 
