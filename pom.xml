@@ -8,10 +8,6 @@
     <artifactId>spark-hbase_2.11</artifactId>
     <packaging>pom</packaging>
     <version>0.1.0</version>
-    <modules>
-        <module>spark-hbase_2.4.3_2.11</module>
-        <module>spark-hbase_2.3.2_2.11</module>
-    </modules>
     <name>Spark HBase</name>
     <url>https://github.com/allwefantasy/spark-hbase.git</url>
     <description>
@@ -60,7 +56,6 @@
         <serviceframework.version>2.0.0</serviceframework.version>
         <scope>provided</scope>
         <hadoop-client-version>2.6.5</hadoop-client-version>
-        <hbase.version>1.2.0</hbase.version>
     </properties>
 
     <dependencies>
@@ -75,68 +70,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-server</artifactId>
-            <version>${hbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>asm</groupId>
-                    <artifactId>asm</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jruby</groupId>
-                    <artifactId>jruby-complete</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-testing-util</artifactId>
-            <type>test-jar</type>
-            <version>${hbase.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-common</artifactId>
-            <version>${hbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>asm</groupId>
-                    <artifactId>asm</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jruby</groupId>
-                    <artifactId>jruby-complete</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <!--<dependency>-->
         <!--<groupId>org.apache.phoenix</groupId>-->
         <!--<artifactId>phoenix-core</artifactId>-->
@@ -232,10 +166,175 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-auth</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-annotations</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-api</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-client</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-common</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-server-common</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-app</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-common</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
+            <version>${hadoop-client-version}</version>
+            <scope>${scope}</scope>
+        </dependency>
 
     </dependencies>
 
     <profiles>
+        <profile>
+            <id>spark-2.3.2</id>
+            <properties>
+                <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                <scala.version>2.11.8</scala.version>
+                <scala.binary.version>2.11</scala.binary.version>
+                <scala.jline.version>2.11.0-M3</scala.jline.version>
+
+                <spark.version>2.3.2</spark.version>
+                <spark.bigversion>2.3</spark.bigversion>
+                <mlsql.version>1.2.0</mlsql.version>
+
+                <guava.version>16.0</guava.version>
+                <httpclient.version>4.5.3</httpclient.version>
+
+                <serviceframework.version>2.0.0</serviceframework.version>
+                <scope>provided</scope>
+                <hadoop-client-version>2.6.5</hadoop-client-version>
+            </properties>
+            <modules>
+                <module>spark-hbase_2.3.2_2.11</module>
+                <module>spark-hbase-tests</module>
+
+            </modules>
+
+        </profile>
+        <profile>
+            <id>spark-2.4.3</id>
+            <properties>
+                <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                <scala.version>2.11.8</scala.version>
+                <scala.binary.version>2.11</scala.binary.version>
+                <scala.jline.version>2.11.0-M3</scala.jline.version>
+
+                <spark.version>2.4.3</spark.version>
+                <spark.bigversion>2.4</spark.bigversion>
+                <mlsql.version>1.2.0</mlsql.version>
+
+                <guava.version>16.0</guava.version>
+                <httpclient.version>4.5.3</httpclient.version>
+
+                <serviceframework.version>2.0.0</serviceframework.version>
+                <scope>provided</scope>
+                <hadoop-client-version>2.6.5</hadoop-client-version>
+            </properties>
+
+            <modules>
+                <module>spark-hbase_2.4.3_2.11</module>
+                <module>spark-hbase-tests</module>
+            </modules>
+
+        </profile>
+
+        <profile>
+            <id>hbase-1.2.x</id>
+            <properties>
+                <hbase.version>1.2.0</hbase.version>
+            </properties>
+            <modules>
+                <module>hbase_1.2.x</module>
+            </modules>
+            <dependencies>
+                <dependency>
+                    <groupId>tech.mlsql</groupId>
+                    <artifactId>hbase_1.2.x</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>hbase-2.0.x</id>
+            <properties>
+                <hbase.version>2.0.4</hbase.version>
+            </properties>
+            <modules>
+                <module>hbase_2.0.x</module>
+            </modules>
+            <dependencies>
+                <dependency>
+                    <groupId>tech.mlsql</groupId>
+                    <artifactId>hbase_2.0.x</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
         <profile>
             <id>disable-java8-doclint</id>
             <activation>

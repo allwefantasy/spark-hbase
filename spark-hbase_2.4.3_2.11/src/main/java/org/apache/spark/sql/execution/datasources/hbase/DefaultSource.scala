@@ -35,9 +35,6 @@ import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.{SerializableConfiguration, Utils}
 import org.joda.time.DateTime
-import org.json4s.DefaultFormats
-
-import scala.collection.JavaConversions._
 
 /**
   * Created by allwefantasy on 8/3/2017.
@@ -65,41 +62,7 @@ case class InsertHBaseRelation(
 
 
   private val wrappedConf = {
-    implicit val formats = DefaultFormats
-
-    // task is already broadcast; since hConf is per HBaseRelation (currently), broadcast'ing
-    // it again does not help - it actually hurts. When we add support for
-    // caching hConf across HBaseRelation, we can revisit broadcast'ing it (with a caching
-    // mechanism in place)
-    val hc = HBaseConfiguration.create()
-    if (parameters.containsKey("zk") || parameters.containsKey("hbase.zookeeper.quorum")) {
-      hc.set("hbase.zookeeper.quorum", parameters.getOrElse("zk", parameters.getOrElse("hbase.zookeeper.quorum", "127.0.0.1:2181")))
-    }
-
-    if (parameters.containsKey("znode")) {
-      hc.set("zookeeper.znode.parent", parameters.get("znode").get)
-    }
-
-    if (parameters.containsKey("rootdir")) {
-      hc.set("hbase.rootdir", parameters.get("rootdir").get)
-    }
-
-    /**
-      * when people confgiure the wrong zk address, by default the HBase client will
-      * try infinitely. We should control this group parameters to limit the try times.
-      */
-    hc.set("hbase.client.pause", parameters.getOrElse("hbase.client.pause", "1000"))
-    hc.set("zookeeper.recovery.retry", parameters.getOrElse("zookeeper.recovery.retry", "60"))
-    hc.set("hbase.client.retries.number", parameters.getOrElse("hbase.client.retries.number", "60"))
-
-
-    parameters.filter { f =>
-      f._1.startsWith("hbase.") || f._1.startsWith("zookeeper.") || f._1.startsWith("phoenix.")
-    }.foreach { f =>
-      hc.set(f._1, f._2)
-    }
-
-    new SerializableConfiguration(hc)
+    new SerializableConfiguration(HBaseConfBuilder.build(dataFrame.sparkSession, parameters))
   }
 
   def hbaseConf = wrappedConf.value
@@ -184,7 +147,9 @@ case class InsertHBaseRelation(
             case BooleanType => Bytes.toBytes(row.getBoolean(field._2))
             case DateType => Bytes.toBytes(new DateTime(row.getDate(field._2)).getMillis)
             case TimestampType => Bytes.toBytes(new DateTime(row.getTimestamp(field._2)).getMillis)
+            case ShortType => Bytes.toBytes(row.getShort(field._2))
             case BinaryType => row.getAs[Array[Byte]](field._2)
+            case ByteType => Bytes.toBytes(row.getAs[Byte](field._2))
             //            case ArrayType => Bytes.toBytes(row.getList(field._2).mkString(","))
             //            case DecimalType.BigIntDecimal => Bytes.toBytes(row.getDecimal(field._2))
             case _ => Bytes.toBytes(row.getString(field._2))
@@ -214,40 +179,7 @@ case class HBaseRelation(
   extends BaseRelation with TableScan with Logging {
 
   private val wrappedConf = {
-    implicit val formats = DefaultFormats
-
-    // task is already broadcast; since hConf is per HBaseRelation (currently), broadcast'ing
-    // it again does not help - it actually hurts. When we add support for
-    // caching hConf across HBaseRelation, we can revisit broadcast'ing it (with a caching
-    // mechanism in place)
-    val hc = HBaseConfiguration.create()
-    if (parameters.containsKey("zk") || parameters.containsKey("hbase.zookeeper.quorum")) {
-      hc.set("hbase.zookeeper.quorum", parameters.getOrElse("zk", parameters.getOrElse("hbase.zookeeper.quorum", "127.0.0.1:2181")))
-    }
-
-    if (parameters.containsKey("znode")) {
-      hc.set("zookeeper.znode.parent", parameters.get("znode").get)
-    }
-
-    if (parameters.containsKey("rootdir")) {
-      hc.set("hbase.rootdir", parameters.get("rootdir").get)
-    }
-
-    /**
-      * when people confgiure the wrong zk address, by default the HBase client will
-      * try infinitely. We should control this group parameters to limit the try times.
-      */
-    hc.set("hbase.client.pause", parameters.getOrElse("hbase.client.pause", "1000"))
-    hc.set("zookeeper.recovery.retry", parameters.getOrElse("zookeeper.recovery.retry", "60"))
-    hc.set("hbase.client.retries.number", parameters.getOrElse("hbase.client.retries.number", "60"))
-
-
-    parameters.filter { f =>
-      f._1.startsWith("hbase.") || f._1.startsWith("zookeeper.") || f._1.startsWith("phoenix.")
-    }.foreach { f =>
-      hc.set(f._1, f._2)
-    }
-
+    val hc = HBaseConfBuilder.build(sqlContext.sparkSession, parameters)
     hc.set(TableInputFormat.INPUT_TABLE, parameters("inputTableName"))
     new SerializableConfiguration(hc)
   }
@@ -261,7 +193,6 @@ case class HBaseRelation(
     val hBaseRDD = sqlContext.sparkContext.newAPIHadoopRDD(hbaseConf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
       .map { line =>
         val rowKey = Bytes.toString(line._2.getRow)
-
         import net.liftweb.{json => SJSon}
         implicit val formats = SJSon.Serialization.formats(SJSon.NoTypeHints)
 
@@ -282,6 +213,8 @@ case class HBaseRelation(
                   case "BinaryType" => CellUtil.cloneValue(cell)
                   case "TimestampType" => new Timestamp(Bytes.toLong(CellUtil.cloneValue(cell)))
                   case "DateType" => new java.sql.Date(Bytes.toLong(CellUtil.cloneValue(cell)))
+                  case "ShortType" => Bytes.toShort(CellUtil.cloneValue(cell))
+                  case "ByteType" => CellUtil.cloneValue(cell).head
                   case _ => Bytes.toString(CellUtil.cloneValue(cell))
                 }
                 (fullColumnName, value) :: (fullColumnName + tsSuffix, cell.getTimestamp) :: Nil
