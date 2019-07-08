@@ -70,33 +70,33 @@ Spark Code Example:
 val data = (0 to 255).map { i =>
       HBaseRecord(i, "extra")
     }
-    val tableName = "t1"
-    val familyName = "c1"
-    
-    
-    import spark.implicits._
-    sc.parallelize(data).toDF.write
-      .options(Map(
-        "outputTableName" -> cat,
-        "family" -> family
-      ) ++ options)
-      .format("org.apache.spark.sql.execution.datasources.hbase")
-      .save()
-      
-    val df = spark.read.format("org.apache.spark.sql.execution.datasources.hbase").options(
-      Map(
-        "inputTableName" -> tableName,
-        "family" -> familyName,
-        "field.type.col1" -> "BooleanType",
-        "field.type.col2" -> "DoubleType",
-        "field.type.col3" -> "FloatType",
-        "field.type.col4" -> "IntegerType",
-        "field.type.col5" -> "LongType",
-        "field.type.col6" -> "ShortType",
-        "field.type.col7" -> "StringType",
-        "field.type.col8" -> "ByteType"
-      )
-    ).load()    
+val tableName = "t1"
+val familyName = "c1"
+
+
+import spark.implicits._
+sc.parallelize(data).toDF.write
+  .options(Map(
+    "outputTableName" -> cat,
+    "family" -> family
+  ) ++ options)
+  .format("org.apache.spark.sql.execution.datasources.hbase")
+  .save()
+  
+val df = spark.read.format("org.apache.spark.sql.execution.datasources.hbase").options(
+  Map(
+    "inputTableName" -> tableName,
+    "family" -> familyName,
+    "field.type.col1" -> "BooleanType",
+    "field.type.col2" -> "DoubleType",
+    "field.type.col3" -> "FloatType",
+    "field.type.col4" -> "IntegerType",
+    "field.type.col5" -> "LongType",
+    "field.type.col6" -> "ShortType",
+    "field.type.col7" -> "StringType",
+    "field.type.col8" -> "ByteType"
+  )
+).load()    
 ```
 
 
