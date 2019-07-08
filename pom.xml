@@ -268,9 +268,7 @@
                 <hadoop-client-version>2.6.5</hadoop-client-version>
             </properties>
             <modules>
-                <module>spark-hbase_2.3.2_2.11</module>
                 <module>spark-hbase-tests</module>
-
             </modules>
 
         </profile>
