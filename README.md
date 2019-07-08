@@ -10,17 +10,13 @@ This library requires Spark 2.3+/2.4+, HBase 1.2+/2.0+ (tested).
 
 You can link against this library in your program at the following coordinates:
 
-### Scala 2.11
-
 ```sql
-groupId: tech.mlsql
-artifactId: spark-hbase_2.4.3_2.11
-version: 0.1.0
+http://download.mlsql.tech/1.3.0-SNAPSHOT/mlsql-hbase/
 ```
 
 * 2.4.3 -> Spark version. 2.4.3/2.3.2 available
-* 2.11 -> Scala version.  2.11 available
-* HBase version by default is 1.2.x; If you wanna support HBase 2.0.x,build manually 
+* 1.2.x -> HBase version.  1.2.x/2.0.x available
+* 2.11 -> Scala version. 
 
 ## Build Shade Jar
 
