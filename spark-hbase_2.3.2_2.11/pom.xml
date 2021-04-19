@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>spark-hbase_2.11</artifactId>
-        <groupId>io.github.pj1987111</groupId>
+        <groupId>tech.mlsql</groupId>
         <version>0.1.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -12,7 +12,7 @@
     <artifactId>spark-hbase_2.3.2_2.11</artifactId>
     <dependencies>
         <dependency>
-            <groupId>io.github.pj1987111</groupId>
+            <groupId>tech.mlsql</groupId>
             <artifactId>hbase_${hbase.module}</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

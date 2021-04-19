@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.pj1987111</groupId>
+    <groupId>tech.mlsql</groupId>
     <artifactId>spark-hbase_2.11</artifactId>
     <packaging>pom</packaging>
     <version>0.1.0</version>
@@ -56,9 +56,6 @@
         <serviceframework.version>2.0.0</serviceframework.version>
         <scope>provided</scope>
         <hadoop-client-version>2.6.5</hadoop-client-version>
-
-        <hbase.version>1.2.0</hbase.version>
-        <hbase.module>1.2.x</hbase.module>
     </properties>
 
     <dependencies>
@@ -365,7 +362,7 @@
             </build>
         </profile>
 
-       
+
 
     </profiles>
 
@@ -466,17 +463,17 @@
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.sonatype.plugins</groupId>-->
-<!--                <artifactId>nexus-staging-maven-plugin</artifactId>-->
-<!--                <version>1.6.7</version>-->
-<!--                <extensions>true</extensions>-->
-<!--                <configuration>-->
-<!--                    <serverId>ossrh</serverId>-->
-<!--                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>-->
-<!--                    <autoReleaseAfterClose>true</autoReleaseAfterClose>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>sonatype-nexus-staging</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
 
             <plugin>
                 <groupId>org.scalatest</groupId>
@@ -503,12 +500,13 @@
     </build>
     <distributionManagement>
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <id>sonatype-nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/
+            </url>
         </repository>
     </distributionManagement>
 
