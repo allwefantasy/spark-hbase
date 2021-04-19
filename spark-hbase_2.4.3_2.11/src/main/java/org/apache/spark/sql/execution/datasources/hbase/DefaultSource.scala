@@ -22,7 +22,7 @@ import java.sql.Timestamp
 
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.hbase._
-import org.apache.hadoop.hbase.client.{ConnectionFactory, Put, Result}
+import org.apache.hadoop.hbase.client.{Admin, Connection, ConnectionFactory, Put, Result}
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable
 import org.apache.hadoop.hbase.mapreduce.{TableInputFormat, TableOutputFormat}
 import org.apache.hadoop.hbase.util.Bytes
@@ -36,6 +36,8 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.{SerializableConfiguration, Utils}
 import org.joda.time.DateTime
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by allwefantasy on 8/3/2017.
   */
@@ -48,17 +50,17 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider with
 
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], data: DataFrame): BaseRelation = {
     val relation = InsertHBaseRelation(data, parameters)(sqlContext)
-    relation.createTable(parameters.getOrElse("numReg", "3").toInt)
+    relation.createTableOrAddFamily(parameters.getOrElse("numReg", "3").toInt)
     relation.insert(data, false)
     relation
   }
 }
 
 case class InsertHBaseRelation(
-                                dataFrame: DataFrame,
-                                parameters: Map[String, String]
+                                  dataFrame: DataFrame,
+                                  parameters: Map[String, String]
                               )(@transient val sqlContext: SQLContext)
-  extends BaseRelation with InsertableRelation with Logging {
+    extends BaseRelation with InsertableRelation with Logging {
 
 
   private val wrappedConf = {
@@ -72,12 +74,71 @@ case class InsertHBaseRelation(
   val family = parameters.getOrElse("family", "f")
   val outputTableName = parameters("outputTableName")
 
-  def createTable(numReg: Int) {
-    val tName = TableName.valueOf(outputTableName)
-
+  def createTableOrAddFamily(numReg: Int, familyName: String = family): Unit = {
     val connection = ConnectionFactory.createConnection(hbaseConf)
-    // Initialize hBase table if necessary
     val admin = connection.getAdmin
+    if (!admin.isTableAvailable(TableName.valueOf(outputTableName))) {
+      createTable(numReg, connection, admin, TableName.valueOf(outputTableName))
+    } else if (!isExistColumnFamily(connection, admin, TableName.valueOf(outputTableName), familyName)) {
+      appendColumnFamily(connection, admin, outputTableName, familyName)
+    }
+    admin.close()
+    connection.close()
+  }
+
+  def isExistColumnFamily(connection: Connection, admin: Admin, tName: TableName, familyName: String): Boolean = {
+    var res = false
+    if (admin.isTableAvailable(tName)) {
+      val table = connection.getTable(tName)
+      val tableDescriptor = table.getTableDescriptor
+      val columnF = tableDescriptor.getColumnFamilies.find(cf => cf.getNameAsString.equals(familyName))
+      res = columnF.nonEmpty
+    }
+    res
+  }
+
+  def appendColumnFamily(connection: Connection, admin: Admin, tableName: String, familyName: String) = {
+    val tName = TableName.valueOf(outputTableName)
+    val tableDesc = admin.getTableDescriptor(tName)
+
+    val cf = new HColumnDescriptor(Bytes.toBytes(familyName))
+    tableDesc.addFamily(cf)
+    admin.modifyTable(tName, tableDesc)
+  }
+
+  def colFamily(colName: String) = {
+    colName.split(":") match {
+      case Array(colF, colN) => (colF, colN)
+      case Array(colN, _) => (family, colN)
+    }
+  }
+
+  /**
+    * dynamic append column family in table
+    *
+    * @param data
+    */
+  def dynamicAppendColumnFamily(data: DataFrame): Unit = {
+    val connection = ConnectionFactory.createConnection(hbaseConf)
+    val admin = connection.getAdmin
+    val familyBuffer = ArrayBuffer[String]()
+    data.schema.fieldNames.foreach(fieldName => {
+      val cols = fieldName.split(":")
+      if (cols.length == 2) {
+        familyBuffer.append(cols(0))
+      }
+    })
+    val familyList = familyBuffer.toArray.distinct
+    familyList.foreach(colF => {
+      if (!isExistColumnFamily(connection, admin, TableName.valueOf(outputTableName), colF)) {
+        appendColumnFamily(connection, admin, outputTableName, colF)
+      }
+    })
+    admin.close()
+    connection.close()
+  }
+
+  def createTable(numReg: Int, connection: Connection, admin: Admin, tName: TableName) {
     if (numReg > 3) {
       if (!admin.isTableAvailable(tName)) {
         val tableDesc = new HTableDescriptor(tName)
@@ -89,13 +150,12 @@ case class InsertHBaseRelation(
         val endKey = Bytes.toBytes("zzzzzzz")
         val splitKeys = Bytes.split(startKey, endKey, numReg - 3)
         admin.createTable(tableDesc, splitKeys)
-        val r = connection.getRegionLocator(TableName.valueOf(outputTableName)).getAllRegionLocations
+        val r = connection.getRegionLocator(tName).getAllRegionLocations
         while (r == null || r.size() == 0) {
           logDebug(s"region not allocated")
           Thread.sleep(1000)
         }
         logInfo(s"region allocated $r")
-
       }
     } else {
       if (!admin.isTableAvailable(tName)) {
@@ -106,8 +166,6 @@ case class InsertHBaseRelation(
         admin.createTable(tableDesc)
       }
     }
-    admin.close()
-    connection.close()
   }
 
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
@@ -125,12 +183,13 @@ case class InsertHBaseRelation(
     var otherFields = fields.zipWithIndex.filter(f => f._1.name != rowkey)
 
     val rdd = data.rdd //df.queryExecution.toRdd
-    val f = family
 
     val tsSuffix = parameters.get("tsSuffix") match {
       case Some(tsSuffix) => otherFields = otherFields.filter(f => !f._1.name.endsWith(tsSuffix)); tsSuffix
       case _ => ""
     }
+
+    dynamicAppendColumnFamily(data)
 
     def convertToPut(row: Row) = {
 
@@ -155,11 +214,12 @@ case class InsertHBaseRelation(
             case _ => Bytes.toBytes(row.getString(field._2))
           }
 
-          val tsField = field._1.name + tsSuffix
+          val (colF, colN) = colFamily(field._1.name)
+          val tsField = colN + tsSuffix
           if (StringUtils.isNoneBlank(tsSuffix) && row.schema.fieldNames.contains(tsField)) {
-            put.addColumn(Bytes.toBytes(f), Bytes.toBytes(field._1.name), row.getAs[Long](tsField), c)
+            put.addColumn(Bytes.toBytes(colF), Bytes.toBytes(colN), row.getAs[Long](tsField), c)
           } else {
-            put.addColumn(Bytes.toBytes(f), Bytes.toBytes(field._1.name), c)
+            put.addColumn(Bytes.toBytes(colF), Bytes.toBytes(colN), c)
           }
         }
       }
@@ -173,10 +233,10 @@ case class InsertHBaseRelation(
 }
 
 case class HBaseRelation(
-                          parameters: Map[String, String],
-                          userSpecifiedschema: Option[StructType]
+                            parameters: Map[String, String],
+                            userSpecifiedschema: Option[StructType]
                         )(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan with Logging {
+    extends BaseRelation with TableScan with Logging {
 
   private val wrappedConf = {
     val hc = HBaseConfBuilder.build(sqlContext.sparkSession, parameters)
@@ -191,48 +251,48 @@ case class HBaseRelation(
     val tsSuffix = parameters.getOrElse("tsSuffix", "_ts")
     val family = parameters.getOrElse("family", "")
     val hBaseRDD = sqlContext.sparkContext.newAPIHadoopRDD(hbaseConf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
-      .map { line =>
-        val rowKey = Bytes.toString(line._2.getRow)
-        import _root_.net.liftweb.{json => SJSon}
-        implicit val formats = SJSon.Serialization.formats(SJSon.NoTypeHints)
+        .map { line =>
+          val rowKey = Bytes.toString(line._2.getRow)
+          import _root_.net.liftweb.{json => SJSon}
+          implicit val formats = SJSon.Serialization.formats(SJSon.NoTypeHints)
 
-        val content = line._2.rawCells().flatMap { cell =>
-          val f = new String(CellUtil.cloneFamily(cell))
-          if ((StringUtils.isNotBlank(family) && family.equals(f))
-            || StringUtils.isBlank(family)) {
-            val columnName = new String(CellUtil.cloneQualifier(cell))
-            val fullColumnName = f + ":" + columnName
-            parameters.get("field.type." + columnName) match {
-              case Some(i) =>
-                val value = i match {
-                  case "LongType" => Bytes.toLong(CellUtil.cloneValue(cell))
-                  case "FloatType" => Bytes.toFloat(CellUtil.cloneValue(cell))
-                  case "DoubleType" => Bytes.toDouble(CellUtil.cloneValue(cell))
-                  case "IntegerType" => Bytes.toInt(CellUtil.cloneValue(cell))
-                  case "BooleanType" => Bytes.toBoolean(CellUtil.cloneValue(cell))
-                  case "BinaryType" => CellUtil.cloneValue(cell)
-                  case "TimestampType" => new Timestamp(Bytes.toLong(CellUtil.cloneValue(cell)))
-                  case "DateType" => new java.sql.Date(Bytes.toLong(CellUtil.cloneValue(cell)))
-                  case "ShortType" => Bytes.toShort(CellUtil.cloneValue(cell))
-                  case "ByteType" => CellUtil.cloneValue(cell).head
-                  case _ => Bytes.toString(CellUtil.cloneValue(cell))
-                }
-                (fullColumnName, value) :: (fullColumnName + tsSuffix, cell.getTimestamp) :: Nil
-              case None => (fullColumnName, Bytes.toString(CellUtil.cloneValue(cell))) :: (fullColumnName + tsSuffix, cell.getTimestamp) :: Nil
+          val content = line._2.rawCells().flatMap { cell =>
+            val f = new String(CellUtil.cloneFamily(cell))
+            if ((StringUtils.isNotBlank(family) && family.equals(f))
+                || StringUtils.isBlank(family)) {
+              val columnName = new String(CellUtil.cloneQualifier(cell))
+              val fullColumnName = f + ":" + columnName
+              parameters.get("field.type." + columnName) match {
+                case Some(i) =>
+                  val value = i match {
+                    case "LongType" => Bytes.toLong(CellUtil.cloneValue(cell))
+                    case "FloatType" => Bytes.toFloat(CellUtil.cloneValue(cell))
+                    case "DoubleType" => Bytes.toDouble(CellUtil.cloneValue(cell))
+                    case "IntegerType" => Bytes.toInt(CellUtil.cloneValue(cell))
+                    case "BooleanType" => Bytes.toBoolean(CellUtil.cloneValue(cell))
+                    case "BinaryType" => CellUtil.cloneValue(cell)
+                    case "TimestampType" => new Timestamp(Bytes.toLong(CellUtil.cloneValue(cell)))
+                    case "DateType" => new java.sql.Date(Bytes.toLong(CellUtil.cloneValue(cell)))
+                    case "ShortType" => Bytes.toShort(CellUtil.cloneValue(cell))
+                    case "ByteType" => CellUtil.cloneValue(cell).head
+                    case _ => Bytes.toString(CellUtil.cloneValue(cell))
+                  }
+                  (fullColumnName, value) :: (fullColumnName + tsSuffix, cell.getTimestamp) :: Nil
+                case None => (fullColumnName, Bytes.toString(CellUtil.cloneValue(cell))) :: (fullColumnName + tsSuffix, cell.getTimestamp) :: Nil
+              }
+            } else {
+              Nil
             }
+          }.toMap
+
+          if (content.size > 0) {
+            val contentStr = SJSon.Serialization.write(content)
+
+            Row.fromSeq(Seq(UTF8String.fromString(rowKey), UTF8String.fromString(contentStr)))
           } else {
-            Nil
+            null
           }
-        }.toMap
-
-        if (content.size > 0) {
-          val contentStr = SJSon.Serialization.write(content)
-
-          Row.fromSeq(Seq(UTF8String.fromString(rowKey), UTF8String.fromString(contentStr)))
-        } else {
-          null
-        }
-      }.filter(_ != null)
+        }.filter(_ != null)
     hBaseRDD
   }
 

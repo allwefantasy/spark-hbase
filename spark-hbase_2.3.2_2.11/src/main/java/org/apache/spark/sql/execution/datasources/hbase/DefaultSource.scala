@@ -22,7 +22,7 @@ import java.sql.Timestamp
 
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.hbase._
-import org.apache.hadoop.hbase.client.{ConnectionFactory, Put, Result}
+import org.apache.hadoop.hbase.client.{Admin, Connection, ConnectionFactory, Put, Result}
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable
 import org.apache.hadoop.hbase.mapreduce.{TableInputFormat, TableOutputFormat}
 import org.apache.hadoop.hbase.util.Bytes
@@ -36,6 +36,8 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.{SerializableConfiguration, Utils}
 import org.joda.time.DateTime
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by allwefantasy on 8/3/2017.
   */
@@ -48,7 +50,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider with
 
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], data: DataFrame): BaseRelation = {
     val relation = InsertHBaseRelation(data, parameters)(sqlContext)
-    relation.createTable(parameters.getOrElse("numReg", "3").toInt)
+    relation.createTableOrAddFamily(parameters.getOrElse("numReg", "3").toInt)
     relation.insert(data, false)
     relation
   }
@@ -72,12 +74,71 @@ case class InsertHBaseRelation(
   val family = parameters.getOrElse("family", "f")
   val outputTableName = parameters("outputTableName")
 
-  def createTable(numReg: Int) {
-    val tName = TableName.valueOf(outputTableName)
-
+  def createTableOrAddFamily(numReg: Int, familyName: String = family): Unit = {
     val connection = ConnectionFactory.createConnection(hbaseConf)
-    // Initialize hBase table if necessary
     val admin = connection.getAdmin
+    if (!admin.isTableAvailable(TableName.valueOf(outputTableName))) {
+      createTable(numReg, connection, admin, TableName.valueOf(outputTableName))
+    } else if (!isExistColumnFamily(connection, admin, TableName.valueOf(outputTableName), familyName)) {
+      appendColumnFamily(connection, admin, outputTableName, familyName)
+    }
+    admin.close()
+    connection.close()
+  }
+
+  def isExistColumnFamily(connection: Connection, admin: Admin, tName: TableName, familyName: String): Boolean = {
+    var res = false
+    if (admin.isTableAvailable(tName)) {
+      val table = connection.getTable(tName)
+      val tableDescriptor = table.getTableDescriptor
+      val columnF = tableDescriptor.getColumnFamilies.find(cf => cf.getNameAsString.equals(familyName))
+      res = columnF.nonEmpty
+    }
+    res
+  }
+
+  def appendColumnFamily(connection: Connection, admin: Admin, tableName: String, familyName: String) = {
+    val tName = TableName.valueOf(outputTableName)
+    val tableDesc = admin.getTableDescriptor(tName)
+
+    val cf = new HColumnDescriptor(Bytes.toBytes(familyName))
+    tableDesc.addFamily(cf)
+    admin.modifyTable(tName, tableDesc)
+  }
+
+  def colFamily(colName: String) = {
+    colName.split(":") match {
+      case Array(colF, colN) => (colF, colN)
+      case Array(colN, _) => (family, colN)
+    }
+  }
+
+  /**
+    * dynamic append column family in table
+    *
+    * @param data
+    */
+  def dynamicAppendColumnFamily(data: DataFrame): Unit = {
+    val connection = ConnectionFactory.createConnection(hbaseConf)
+    val admin = connection.getAdmin
+    val familyBuffer = ArrayBuffer[String]()
+    data.schema.fieldNames.foreach(fieldName => {
+      val cols = fieldName.split(":")
+      if (cols.length == 2) {
+        familyBuffer.append(cols(0))
+      }
+    })
+    val familyList = familyBuffer.toArray.distinct
+    familyList.foreach(colF => {
+      if (!isExistColumnFamily(connection, admin, TableName.valueOf(outputTableName), colF)) {
+        appendColumnFamily(connection, admin, outputTableName, colF)
+      }
+    })
+    admin.close()
+    connection.close()
+  }
+
+  def createTable(numReg: Int, connection: Connection, admin: Admin, tName: TableName) {
     if (numReg > 3) {
       if (!admin.isTableAvailable(tName)) {
         val tableDesc = new HTableDescriptor(tName)
@@ -95,7 +156,6 @@ case class InsertHBaseRelation(
           Thread.sleep(1000)
         }
         logInfo(s"region allocated $r")
-
       }
     } else {
       if (!admin.isTableAvailable(tName)) {
@@ -106,8 +166,6 @@ case class InsertHBaseRelation(
         admin.createTable(tableDesc)
       }
     }
-    admin.close()
-    connection.close()
   }
 
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
@@ -125,12 +183,13 @@ case class InsertHBaseRelation(
     var otherFields = fields.zipWithIndex.filter(f => f._1.name != rowkey)
 
     val rdd = data.rdd //df.queryExecution.toRdd
-    val f = family
 
     val tsSuffix = parameters.get("tsSuffix") match {
       case Some(tsSuffix) => otherFields = otherFields.filter(f => !f._1.name.endsWith(tsSuffix)); tsSuffix
       case _ => ""
     }
+
+    dynamicAppendColumnFamily(data)
 
     def convertToPut(row: Row) = {
 
@@ -155,11 +214,12 @@ case class InsertHBaseRelation(
             case _ => Bytes.toBytes(row.getString(field._2))
           }
 
-          val tsField = field._1.name + tsSuffix
+          val (colF, colN) = colFamily(field._1.name)
+          val tsField = colN + tsSuffix
           if (StringUtils.isNoneBlank(tsSuffix) && row.schema.fieldNames.contains(tsField)) {
-            put.addColumn(Bytes.toBytes(f), Bytes.toBytes(field._1.name), row.getAs[Long](tsField), c)
+            put.addColumn(Bytes.toBytes(colF), Bytes.toBytes(field._1.name), row.getAs[Long](tsField), c)
           } else {
-            put.addColumn(Bytes.toBytes(f), Bytes.toBytes(field._1.name), c)
+            put.addColumn(Bytes.toBytes(colF), Bytes.toBytes(field._1.name), c)
           }
         }
       }
