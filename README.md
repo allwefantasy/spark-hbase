@@ -55,8 +55,7 @@ mvn clean test  -Phbase-2.0.x -Pspark-2.4.3 -Ptest-spark-2.4.3 -pl spark-hbase-t
 
 ## Limitation of 0.1.0
 
-1. Do not support multi families(load/save).
-2. Do not support PushDown filter.
+1. Do not support PushDown filter.
 
 ## RoadMap
 
@@ -99,6 +98,43 @@ val df = spark.read.format("org.apache.spark.sql.execution.datasources.hbase").o
 ).load()    
 ```
 
+multi families(load/save) Example.
+with "c1:q1" format column
+when save auto append column family.
+```
+@Test
+def writeDataMultiFamily(): Unit = {
+val data = (0 to 200).map { i =>
+  HBaseMultiFamilyRecord(i, "extra")
+}
+val spark = ss
+import spark.implicits._
+sc.parallelize(data).toDF.write
+    .options(Map(
+      "outputTableName" -> multiTableName,
+      "family" -> multiFamilyName
+    ) ++ defaultM)
+    .format("org.apache.spark.sql.execution.datasources.hbase")
+    .save()
+}
+
+@Test
+def readDataMultiFamily(): Unit = {
+val df = ss.read.format("org.apache.spark.sql.execution.datasources.hbase").options(
+  Map(
+    "inputTableName" -> multiTableName,
+    //        "family" -> familyName,
+    "field.type.c1:col0" -> "StringType",
+    "field.type.c1:col1" -> "StringType",
+    "field.type.c2:col0" -> "StringType",
+    "field.type.c2:col1" -> "StringType",
+    "field.type.c3:col0" -> "StringType",
+    "field.type.c4:col1" -> "StringType"
+  ) ++ defaultM
+).load()
+df.show(1000, false)
+}
+```
 
 MLSQL Example:
 

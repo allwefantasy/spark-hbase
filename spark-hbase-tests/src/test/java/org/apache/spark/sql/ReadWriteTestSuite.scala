@@ -85,3 +85,29 @@ object HBaseRecord {
       i.toByte)
   }
 }
+
+case class HBaseMultiFamilyRecord(
+                          rowkey: String,
+                          `c1:col0`: String,
+                          `c1:col1`: String,
+                          `c2:col0`: String,
+                          `c2:col1`: String,
+                          `c3:col0`: String,
+                          `c3:col1`: String,
+                          `c4:col0`: String,
+                          `c4:col1`: String)
+
+object HBaseMultiFamilyRecord {
+  def apply(i: Int, t: String): HBaseMultiFamilyRecord = {
+    val s = s"""row${"%03d".format(i)}"""
+    HBaseMultiFamilyRecord(s,
+      s,
+      s"String$i: $t",
+      s,
+      s"String$i: $t",
+      s,
+      s"String$i: $t",
+      s,
+      s"String$i: $t")
+  }
+}
